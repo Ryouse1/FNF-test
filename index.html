@@ -1,91 +1,72 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Newgrounds Viewer</title>
-
+<title>Console Viewer</title>
 <style>
 body {
-  margin: 0;
   background: #111;
-  font-family: Arial, sans-serif;
   color: white;
-  text-align: center;
-}
-
-header {
-  padding: 15px;
-  background: #222;
-  font-size: 18px;
-}
-
-.wrapper {
-  position: relative;
-  width: 100%;
-  height: 100vh;
+  font-family: monospace;
+  margin: 0;
 }
 
 iframe {
   width: 100%;
-  height: 100%;
-  border: none;
+  height: 60vh;
+  border: 2px solid orange;
 }
 
-.fallback {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  display: none;
+#consoleBox {
+  height: 35vh;
+  overflow-y: auto;
+  background: black;
+  padding: 10px;
+  border-top: 2px solid orange;
 }
 
-button {
-  padding: 12px 20px;
-  font-size: 16px;
-  background: orange;
-  border: none;
-  cursor: pointer;
-  border-radius: 6px;
-}
+.log { color: #0f0; }
+.error { color: #f33; }
+.warn { color: #ff0; }
 </style>
 </head>
-
 <body>
 
-<header>
-Newgrounds Portal Viewer
-</header>
+<iframe src="https://www.newgrounds.com/portal/view/770371"></iframe>
 
-<div class="wrapper">
-  <iframe id="ngFrame"
-    src="https://www.newgrounds.com/portal/view/770371"
-    allowfullscreen>
-  </iframe>
-
-  <div class="fallback" id="fallback">
-    <p>埋め込みがブロックされました。</p>
-    <button onclick="openDirect()">直接開く</button>
-  </div>
-</div>
+<div id="consoleBox"></div>
 
 <script>
-const frame = document.getElementById("ngFrame");
-const fallback = document.getElementById("fallback");
+const consoleBox = document.getElementById("consoleBox");
 
-setTimeout(() => {
-  try {
-    if (!frame.contentWindow || frame.contentWindow.length === 0) {
-      fallback.style.display = "block";
-    }
-  } catch (e) {
-    fallback.style.display = "block";
-  }
-}, 2000);
-
-function openDirect() {
-  window.open("https://www.newgrounds.com/portal/view/770371", "_blank");
+function addMessage(type, message) {
+  const div = document.createElement("div");
+  div.className = type;
+  div.textContent = `[${type}] ` + message;
+  consoleBox.appendChild(div);
+  consoleBox.scrollTop = consoleBox.scrollHeight;
 }
+
+// console上書き
+["log","error","warn"].forEach(type => {
+  const original = console[type];
+  console[type] = function(...args) {
+    addMessage(type, args.join(" "));
+    original.apply(console, args);
+  };
+});
+
+// グローバルエラー捕捉
+window.onerror = function(msg, src, line, col, err) {
+  addMessage("error", msg + " (" + src + ":" + line + ")");
+};
+
+// Promiseエラー捕捉
+window.addEventListener("unhandledrejection", function(e) {
+  addMessage("error", "Unhandled Promise: " + e.reason);
+});
+
+console.log("Console viewer ready.");
 </script>
 
 </body>
